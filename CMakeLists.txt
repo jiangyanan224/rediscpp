@@ -1,141 +1,259 @@
-cmake_minimum_required(VERSION 3.8...3.20)
+cmake_minimum_required(VERSION 3.14)
+
+#set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
 
 # determine whether it's main/root project
 # or being built under another project.
-if (NOT DEFINED BOOST_REDIS_MAIN_PROJECT)
-  set(BOOST_REDIS_MAIN_PROJECT OFF)
-  if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    set(BOOST_REDIS_MAIN_PROJECT ON)
-  endif()
+if (NOT DEFINED REDIS_MAIN_PROJECT)
+   set(REDIS_MAIN_PROJECT OFF)
+  #  if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+  #     set(REDIS_MAIN_PROJECT ON)
+  #  endif()
 endif()
 
-project(boost_redis VERSION "${BOOST_SUPERPROJECT_VERSION}" LANGUAGES CXX)
+project(
+    redis
+    VERSION 1.4.1
+    DESCRIPTION "A redis client library"
+    HOMEPAGE_URL "https://boostorg.github.io/redis/"
+    LANGUAGES CXX
+)
 
-# Library
-add_library(boost_redis INTERFACE)
-add_library(Boost::redis ALIAS boost_redis)
-target_include_directories(boost_redis INTERFACE include)
-target_compile_features(boost_redis INTERFACE cxx_std_17)
+option(REDIS_INSTALL "Generate install targets." ${REDIS_MAIN_PROJECT})
+option(REDIS_TESTS "Build tests." ${REDIS_MAIN_PROJECT})
+option(REDIS_EXAMPLES "Build examples." ${REDIS_MAIN_PROJECT})
+option(REDIS_BENCHMARKS "Build benchmarks." ${REDIS_MAIN_PROJECT})
+option(REDIS_DOC "Generate documentations." ${REDIS_MAIN_PROJECT})
 
-# Dependencies
-if (BOOST_REDIS_MAIN_PROJECT)
-  # TODO: Understand why we have to list all dependencies below
-  # instead of
-  #set(BOOST_INCLUDE_LIBRARIES redis)
-  #set(BOOST_EXCLUDE_LIBRARIES redis)
-  #add_subdirectory(../.. boostorg/boost EXCLUDE_FROM_ALL)
+add_library(redis INTERFACE)
+target_include_directories(redis INTERFACE
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
 
-  set(deps
-    system
-    assert
-    config
-    throw_exception
+target_link_libraries(
+  redis
+  INTERFACE
     asio
-    variant2
-    mp11
-    winapi
-    predef
-    align
-    context
-    core
-    static_assert
-    pool
-    date_time
-    smart_ptr
-    exception
-    integer
-    move
-    type_traits
-    algorithm
-    utility
-    io
-    lexical_cast
-    numeric/conversion
-    mpl
-    range
-    tokenizer
-    tuple
-    array
-    bind
-    concept_check
-    function
-    iterator
-    regex
-    unordered
-    preprocessor
-    container
-    conversion
-    container_hash
-    detail
-    optional
-    function_types
-    fusion
-    intrusive
-    describe
-    typeof
-    functional
-    test
-    json
-    endian
-  )
+)
 
-  foreach(dep IN LISTS deps)
-    add_subdirectory(../${dep} boostorg/${dep})
-  endforeach()
+target_compile_features(redis INTERFACE cxx_std_17)
 
-  find_package(Threads REQUIRED)
-  find_package(OpenSSL REQUIRED)
-  target_link_libraries(boost_redis
-    INTERFACE
-      Boost::system
-      Boost::asio
-      Threads::Threads
-      OpenSSL::Crypto
-      OpenSSL::SSL
-  )
-else()
-  # If we're in the superproject or called from add_subdirectory,
-  # Boost dependencies should be already available.
-  # If other dependencies are not found, we bail out
-  find_package(Threads)
-  if(NOT Threads_FOUND)
-    message(STATUS "Boost.Redis has been disabled, because the required package Threads hasn't been found")
-    return()
+# Asio bases C++ feature detection on __cplusplus. Make MSVC
+# define it correctly
+if (MSVC)
+  target_compile_options(redis INTERFACE /Zc:__cplusplus)
+endif()
+
+include_directories(${INCLUDE_DIRS})
+
+# 依赖项目中的openssl
+# find_package(OpenSSL REQUIRED)
+
+include_directories(include)
+
+# Common
+#=======================================================================
+
+add_library(redis_project_options INTERFACE)
+# 依赖项目中的openssl
+# target_link_libraries(redis_project_options INTERFACE OpenSSL::Crypto OpenSSL::SSL)
+if (MSVC)
+   target_compile_options(redis_project_options INTERFACE /bigobj)
+   target_compile_definitions(redis_project_options INTERFACE _WIN32_WINNT=0x0601)
+endif()
+
+if (REDIS_BENCHMARKS OR REDIS_EXAMPLES OR REDIS_TESTS)
+  add_library(redis_src STATIC examples/redis.cpp)
+  target_compile_features(redis_src PRIVATE cxx_std_17)
+  target_link_libraries(redis_src PRIVATE redis_project_options)
+endif()
+
+# Executables
+#=======================================================================
+
+if (REDIS_BENCHMARKS)
+  add_library(benchmarks_options INTERFACE)
+  target_link_libraries(benchmarks_options INTERFACE redis_src)
+  target_link_libraries(benchmarks_options INTERFACE redis_project_options)
+  target_compile_features(benchmarks_options INTERFACE cxx_std_20)
+
+  add_executable(echo_server_client benchmarks/cpp/asio/echo_server_client.cpp)
+  target_link_libraries(echo_server_client PRIVATE benchmarks_options)
+
+  add_executable(echo_server_direct benchmarks/cpp/asio/echo_server_direct.cpp)
+  target_link_libraries(echo_server_direct PRIVATE benchmarks_options)
+endif()
+
+if (REDIS_EXAMPLES)
+  add_library(examples_main STATIC examples/main.cpp)
+  target_compile_features(examples_main PRIVATE cxx_std_20)
+  target_link_libraries(examples_main PRIVATE redis_project_options)
+
+  macro(make_example EXAMPLE_NAME STANDARD)
+    add_executable(${EXAMPLE_NAME} examples/${EXAMPLE_NAME}.cpp)
+    target_link_libraries(${EXAMPLE_NAME} PRIVATE redis_src)
+    target_link_libraries(${EXAMPLE_NAME} PRIVATE redis_project_options)
+    target_compile_features(${EXAMPLE_NAME} PRIVATE cxx_std_${STANDARD})
+    if (${STANDARD} STREQUAL "20")
+      target_link_libraries(${EXAMPLE_NAME} PRIVATE examples_main)
+    endif()
+  endmacro()
+
+  macro(make_testable_example EXAMPLE_NAME STANDARD)
+    make_example(${EXAMPLE_NAME} ${STANDARD})
+    add_test(${EXAMPLE_NAME} ${EXAMPLE_NAME})
+  endmacro()
+
+  make_testable_example(cpp17_intro 17)
+  make_testable_example(cpp17_intro_sync 17)
+
+  make_testable_example(cpp20_intro 20)
+  make_testable_example(cpp20_containers 20)
+  make_testable_example(cpp20_json 20)
+  make_testable_example(cpp20_intro_tls 20)
+
+  make_example(cpp20_subscriber 20)
+  make_example(cpp20_streams 20)
+  make_example(cpp20_echo_server 20)
+  make_example(cpp20_resolve_with_sentinel 20)
+
+  # We test the protobuf example only on gcc.
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    find_package(Protobuf)
+    if (Protobuf_FOUND)
+       protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS examples/person.proto)
+       make_testable_example(cpp20_protobuf 20)
+       target_sources(cpp20_protobuf PUBLIC ${PROTO_SRCS} ${PROTO_HDRS})
+       target_link_libraries(cpp20_protobuf PRIVATE  ${Protobuf_LIBRARIES})
+       target_include_directories(cpp20_protobuf PUBLIC ${Protobuf_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
+    endif()
   endif()
-  find_package(OpenSSL)
-  if(NOT OpenSSL_FOUND)
-    message(STATUS "Boost.Redis has been disabled, because the required package OpenSSL hasn't been found")
-    return()
-  endif()
 
-  # This is generated by boostdep
-  target_link_libraries(boost_redis
-    INTERFACE
-      Boost::asio
-      Boost::assert
-      Boost::core
-      Boost::mp11
-      Boost::system
-      Boost::throw_exception
-      Threads::Threads
-      OpenSSL::Crypto
-      OpenSSL::SSL
+  if (NOT MSVC)
+     make_example(cpp20_chat_room 20)
+  endif()
+endif()
+
+if (REDIS_TESTS)
+  enable_testing()
+
+  add_library(tests_common STATIC tests/common.cpp)
+  target_compile_features(tests_common PRIVATE cxx_std_17)
+  target_link_libraries(tests_common PRIVATE redis_project_options)
+
+  macro(make_test TEST_NAME STANDARD)
+    add_executable(${TEST_NAME} tests/${TEST_NAME}.cpp)
+    target_link_libraries(${TEST_NAME} PRIVATE redis_src tests_common)
+    target_link_libraries(${TEST_NAME} PRIVATE redis_project_options)
+    target_compile_features(${TEST_NAME} PRIVATE cxx_std_${STANDARD})
+    add_test(${TEST_NAME} ${TEST_NAME})
+  endmacro()
+
+  make_test(test_conn_quit 17)
+  make_test(test_conn_tls 17)
+  make_test(test_low_level 17)
+  make_test(test_conn_exec_retry 17)
+  make_test(test_conn_exec_error 17)
+  make_test(test_request 17)
+  make_test(test_run 17)
+  make_test(test_low_level_sync 17)
+  make_test(test_low_level_sync_sans_io 17)
+  make_test(test_conn_check_health 17)
+
+  make_test(test_conn_exec 20)
+  make_test(test_conn_push 20)
+  make_test(test_conn_reconnect 20)
+  make_test(test_conn_exec_cancel 20)
+  make_test(test_conn_exec_cancel2 20)
+  make_test(test_conn_echo_stress 20)
+  make_test(test_low_level_async 20)
+  make_test(test_conn_run_cancel 20)
+  make_test(test_issue_50 20)
+endif()
+
+# Install
+#=======================================================================
+
+if (REDIS_INSTALL)
+  install(TARGETS redis
+      EXPORT redis
+      PUBLIC_HEADER DESTINATION include COMPONENT Development
+  )
+  
+  include(CMakePackageConfigHelpers)
+  
+  configure_package_config_file(
+     "${PROJECT_SOURCE_DIR}/cmake/RedisConfig.cmake.in"
+     "${PROJECT_BINARY_DIR}/RedisConfig.cmake"
+      INSTALL_DESTINATION lib/cmake/redis
+  )
+  
+  install(EXPORT redis DESTINATION lib/cmake/redis)
+  install(FILES "${PROJECT_BINARY_DIR}/RedisConfigVersion.cmake"
+     "${PROJECT_BINARY_DIR}/RedisConfig.cmake"
+       DESTINATION lib/cmake/redis)
+  
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)
+
+  include(CMakePackageConfigHelpers)
+  write_basic_package_version_file(
+    "${PROJECT_BINARY_DIR}/RedisConfigVersion.cmake"
+    COMPATIBILITY AnyNewerVersion
+  )
+
+  include(CPack)
+endif()
+
+# Doxygen
+#=======================================================================
+
+if (REDIS_DOC)
+  set(DOXYGEN_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/doc")
+  configure_file(doc/Doxyfile.in doc/Doxyfile @ONLY)
+  
+  add_custom_target(
+      doc
+      COMMAND doxygen "${PROJECT_BINARY_DIR}/doc/Doxyfile"
+      COMMENT "Building documentation using Doxygen"
+      WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+      VERBATIM
   )
 endif()
 
-# Enable testing. If we're being called from the superproject, this has already been done
-if (BOOST_REDIS_MAIN_PROJECT)
-  include(CTest)
-endif()
+# Coverage
+#=======================================================================
 
-# Most tests require a running Redis server, so we only run them if we're the main project
-if(BOOST_REDIS_MAIN_PROJECT AND BUILD_TESTING)
-  # Tests and common utilities
-  add_subdirectory(test)
+# set(
+#     COVERAGE_TRACE_COMMAND
+#     lcov --capture
+#     -output-file "${PROJECT_BINARY_DIR}/coverage.info"
+#     --directory "${PROJECT_BINARY_DIR}"
+#     --include "${PROJECT_SOURCE_DIR}/include/*"
+# )
 
-  # Benchmarks. Build them with tests to prevent code rotting
-  add_subdirectory(benchmarks)
+# set(
+#     COVERAGE_HTML_COMMAND
+#     genhtml --legend -f -q
+#     "${PROJECT_BINARY_DIR}/coverage.info"
+#     --prefix "${PROJECT_SOURCE_DIR}"
+#     --output-directory "${PROJECT_BINARY_DIR}/coverage_html"
+# )
 
-  # Examples
-  add_subdirectory(example)
-endif()
+# add_custom_target(
+#     coverage
+#     COMMAND ${COVERAGE_TRACE_COMMAND}
+#     COMMAND ${COVERAGE_HTML_COMMAND}
+#     COMMENT "Generating coverage report"
+#     VERBATIM
+# )
+
+# TODO
+#=======================================================================
+
+#.PHONY: bench
+#bench:
+#	pdflatex --jobname=echo-f0 benchmarks/benchmarks.tex
+#	pdflatex --jobname=echo-f1 benchmarks/benchmarks.tex
+# pdftoppm {input.pdf} {output.file} -png
+

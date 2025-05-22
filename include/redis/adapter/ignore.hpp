@@ -1,0 +1,45 @@
+/* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
+ *
+ * Distributed under the Redis Software License, Version 1.0. (See
+ * accompanying file LICENSE.txt)
+ */
+
+#ifndef REDIS_ADAPTER_IGNORE_HPP
+#define REDIS_ADAPTER_IGNORE_HPP
+
+#include <redis/resp3/node.hpp>
+#include <redis/error.hpp>
+#include <system_error>
+#include <string>
+
+namespace redis::adapter
+{
+
+/** @brief An adapter that ignores responses
+ *  @ingroup high-level-api
+ *
+ *  RESP3 errors won't be ignored.
+ */
+struct ignore
+{
+    void operator()(resp3::basic_node<std::string_view> const& nd, std::error_code& ec)
+    {
+        switch (nd.data_type)
+        {
+        case resp3::type::simple_error:
+            ec = redis::error::resp3_simple_error;
+            break;
+        case resp3::type::blob_error:
+            ec = redis::error::resp3_blob_error;
+            break;
+        case resp3::type::null:
+            ec = redis::error::resp3_null;
+            break;
+        default:;
+        }
+    }
+};
+
+}  // namespace redis::adapter
+
+#endif  // REDIS_ADAPTER_IGNORE_HPP

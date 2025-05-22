@@ -7,10 +7,10 @@ codecov:
 
 ignore:
   - "benchmarks/cpp/asio/*"
-  - "example/*"
+  - "examples/*"
   - "tests/*"
   - "/usr/*"
-  - "**/boost/*"
+  - "**/*"
 
 parsers:
   gcov:
