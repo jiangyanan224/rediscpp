@@ -1,6 +1,6 @@
 /* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
- * Distributed under the Redis Software License, Version 1.0. (See
+ * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
  */
 
@@ -10,7 +10,7 @@
 #include <redis/resp3/node.hpp>
 #include <redis/response.hpp>
 #include <redis/adapter/detail/result_traits.hpp>
-#include <redis/mp.hpp>
+#include <mp11.hpp>
 
 #include <tuple>
 #include <limits>
@@ -52,8 +52,8 @@ class static_adapter
 {
 private:
     static constexpr auto size = std::tuple_size<Response>::value;
-    using adapter_tuple = redis::mp_transform<adapter_t, Response>;
-    using variant_type = redis::mp_rename<adapter_tuple, std::variant>;
+    using adapter_tuple = mp11::mp_transform<adapter_t, Response>;
+    using variant_type = mp11::mp_rename<adapter_tuple, std::variant>;
     using adapters_array_type = std::array<variant_type, size>;
 
     adapters_array_type adapters_;

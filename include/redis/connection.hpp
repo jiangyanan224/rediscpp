@@ -1,6 +1,6 @@
 /* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
- * Distributed under the Redis Software License, Version 1.0. (See
+ * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
  */
 
@@ -19,7 +19,6 @@
 #include <chrono>
 #include <memory>
 #include <limits>
-#include <system_error>
 
 namespace redis
 {
@@ -304,13 +303,11 @@ public:
 
     /// Contructs from an executor.
     explicit connection(executor_type ex, asio::ssl::context::method method = asio::ssl::context::tls_client,
-                        std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)())
-        : impl_ { ex, method, max_read_size } {};
+                        std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)());
 
     /// Contructs from a context.
     explicit connection(asio::io_context& ioc, asio::ssl::context::method method = asio::ssl::context::tls_client,
-                        std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)())
-        : impl_ { ioc.get_executor(), method, max_read_size } {};
+                        std::size_t max_read_size = (std::numeric_limits<std::size_t>::max)());
 
     /// Returns the underlying executor.
     executor_type get_executor() noexcept
@@ -341,10 +338,7 @@ public:
     }
 
     /// Calls `redis::basic_connection::cancel`.
-    void cancel(operation op = operation::all)
-    {
-        impl_.cancel(op);
-    };
+    void cancel(operation op = operation::all);
 
     /// Calls `redis::basic_connection::will_reconnect`.
     bool will_reconnect() const noexcept
@@ -371,14 +365,13 @@ public:
     }
 
 private:
-    void async_run_impl(config const& cfg, logger l, asio::any_completion_handler<void(std::error_code)> token)
-    {
-        impl_.async_run(cfg, l, std::move(token));
-    };
+    void async_run_impl(config const& cfg, logger l, asio::any_completion_handler<void(std::error_code)> token);
 
     basic_connection<executor_type> impl_;
 };
 
 }  // namespace redis
+
+#include <redis/impl/connection.ipp>
 
 #endif  // REDIS_CONNECTION_HPP

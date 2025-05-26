@@ -1,6 +1,6 @@
 /* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
- * Distributed under the Redis Software License, Version 1.0. (See
+ * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
  */
 
@@ -13,7 +13,7 @@
 #include <redis/adapter/detail/adapters.hpp>
 #include <redis/adapter/result.hpp>
 #include <redis/adapter/ignore.hpp>
-#include <redis/mp.hpp>
+#include <mp11.hpp>
 
 #include <vector>
 #include <tuple>
@@ -119,7 +119,7 @@ template <class Tuple>
 class static_aggregate_adapter<result<Tuple>>
 {
 private:
-    using adapters_array_type = std::array<redis::mp_rename<redis::mp_transform<adapter_t, Tuple>, std::variant>, std::tuple_size<Tuple>::value>;
+    using adapters_array_type = std::array<mp11::mp_rename<mp11::mp_transform<adapter_t, Tuple>, std::variant>, std::tuple_size<Tuple>::value>;
 
     std::size_t i_ = 0;
     std::size_t aggregate_size_ = 0;

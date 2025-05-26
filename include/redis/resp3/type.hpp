@@ -1,6 +1,6 @@
 /* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
- * Distributed under the Redis Software License, Version 1.0. (See
+ * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
  */
 
@@ -63,59 +63,14 @@ enum class type
  *  \ingroup high-level-api
  *  \param t RESP3 type.
  */
-inline auto to_string(type t) noexcept -> char const*
-{
-    switch (t)
-    {
-    case type::array:
-        return "array";
-    case type::push:
-        return "push";
-    case type::set:
-        return "set";
-    case type::map:
-        return "map";
-    case type::attribute:
-        return "attribute";
-    case type::simple_string:
-        return "simple_string";
-    case type::simple_error:
-        return "simple_error";
-    case type::number:
-        return "number";
-    case type::doublean:
-        return "doublean";
-    case type::boolean:
-        return "boolean";
-    case type::big_number:
-        return "big_number";
-    case type::null:
-        return "null";
-    case type::blob_error:
-        return "blob_error";
-    case type::verbatim_string:
-        return "verbatim_string";
-    case type::blob_string:
-        return "blob_string";
-    case type::streamed_string:
-        return "streamed_string";
-    case type::streamed_string_part:
-        return "streamed_string_part";
-    default:
-        return "invalid";
-    }
-};
+auto to_string(type t) noexcept -> char const*;
 
 /** \brief Writes the type to the output stream.
  *  \ingroup high-level-api
  *  \param os Output stream.
  *  \param t RESP3 type.
  */
-inline auto operator<<(std::ostream& os, type t) -> std::ostream&
-{
-    os << to_string(t);
-    return os;
-};
+auto operator<<(std::ostream& os, type t) -> std::ostream&;
 
 /* Checks whether the data type is an aggregate.
  */
@@ -235,5 +190,7 @@ constexpr auto to_type(char c) noexcept -> type
 }
 
 }  // namespace redis::resp3
+
+#include <redis/resp3/impl/type.ipp>
 
 #endif  // REDIS_RESP3_TYPE_HPP

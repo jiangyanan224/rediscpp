@@ -1,6 +1,6 @@
 /* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
- * Distributed under the Redis Software License, Version 1.0. (See
+ * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
  */
 
@@ -23,11 +23,11 @@
 #include <asio/ip/tcp.hpp>
 #include <asio/steady_timer.hpp>
 #include <asio/write.hpp>
-#include <cassert>
 #include <asio/ssl/stream.hpp>
 #include <asio/read_until.hpp>
 #include <asio/buffer.hpp>
 
+#include <cassert>
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -35,7 +35,6 @@
 #include <memory>
 #include <string_view>
 #include <type_traits>
-#include <system_error>
 
 namespace redis::detail
 {
@@ -389,7 +388,7 @@ struct writer_op
     template <class Self>
     void operator()(Self& self, std::error_code ec = {}, std::size_t n = 0)
     {
-        (void)n;
+        (void)(n);
 
         ASIO_CORO_REENTER(coro) for (;;)
         {
@@ -444,7 +443,7 @@ struct reader_op
     template <class Self>
     void operator()(Self& self, std::error_code ec = {}, std::size_t n = 0)
     {
-        (void)n;
+        (void)(n);
 
         ASIO_CORO_REENTER(coro) for (;;)
         {
@@ -492,7 +491,7 @@ struct reader_op
             else
             {
                 assert(conn->is_waiting_response());
-                // ASSERT_MSG(conn->is_waiting_response(), "Not waiting for a response (using MONITOR command perhaps?)");
+                // static_assert(conn->is_waiting_response(), "Not waiting for a response (using MONITOR command perhaps?)");
                 assert(!conn->reqs_.empty());
                 assert(conn->reqs_.front()->get_number_of_commands() != 0);
                 conn->reqs_.front()->proceed();
@@ -601,7 +600,7 @@ public:
         using namespace redis::adapter;
         auto f = boost_redis_adapt(resp);
         assert(req.size() <= f.get_supported_response_size());
-        // ASSERT_MSG(req.size() <= f.get_supported_response_size(), "Request and response have incompatible sizes.");
+        // static_assert(req.size() <= f.get_supported_response_size(), "Request and response have incompatible sizes.");
 
         return asio::async_compose<CompletionToken, void(std::error_code, std::size_t)>(redis::detail::exec_op<this_type, decltype(f)> { this, &req, f }, token,
                                                                                         writer_timer_);
@@ -721,7 +720,7 @@ private:
         // partition of unwritten requests instead of them all.
         std::for_each(std::begin(reqs_), std::end(reqs_), [](auto const& ptr) {
             assert(ptr != nullptr);
-            // ASSERT_MSG(ptr != nullptr, "Expects non-null pointer.");
+            // static_assert(ptr != nullptr, "Expects non-null pointer.");
             if (ptr->is_staged())
                 ptr->mark_written();
         });

@@ -1,6 +1,6 @@
 /* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
- * Distributed under the Redis Software License, Version 1.0. (See
+ * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
  */
 
@@ -12,8 +12,8 @@
 #include <redis/resp3/serialization.hpp>
 #include <redis/resp3/node.hpp>
 #include <redis/adapter/result.hpp>
-#include <cassert>
 
+#include <cassert>
 #include <set>
 #include <optional>
 #include <unordered_set>
@@ -27,7 +27,6 @@
 #include <array>
 #include <string_view>
 #include <charconv>
-#include <system_error>
 
 // See https://stackoverflow.com/a/31658120/1077832
 #include <ciso646>
@@ -93,7 +92,7 @@ public:
     void operator()(resp3::basic_node<std::string_view> const& nd, std::error_code&)
     {
         assert(!!result_);
-        // ASSERT_MSG(!!result_, "Unexpected null pointer");
+        // static_assert(!!result_, "Unexpected null pointer");
         switch (nd.data_type)
         {
         case resp3::type::blob_error:
@@ -119,7 +118,7 @@ public:
 
     void operator()(resp3::basic_node<std::string_view> const& nd, std::error_code&)
     {
-        ASSERT_MSG(!!result_, "Unexpected null pointer");
+        static_assert(!!result_, "Unexpected null pointer");
         switch (nd.data_type)
         {
         case resp3::type::blob_error:
@@ -449,7 +448,7 @@ public:
     void operator()(resp3::basic_node<std::string_view> const& nd, std::error_code& ec)
     {
         assert(!!result_);
-        // ASSERT_MSG(!!result_, "Unexpected null pointer");
+        // static_assert(!!result_, "Unexpected null pointer");
 
         if (result_->has_error())
             return;
@@ -492,7 +491,7 @@ public:
 
     void operator()(resp3::basic_node<std::string_view> const& nd, std::error_code& ec)
     {
-        ASSERT_MSG(!!result_, "Unexpected null pointer");
+        static_assert(!!result_, "Unexpected null pointer");
 
         if (result_->has_error())
             return;

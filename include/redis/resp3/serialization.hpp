@@ -1,6 +1,6 @@
 /* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
- * Distributed under the Redis Software License, Version 1.0. (See
+ * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
  */
 
@@ -10,7 +10,7 @@
 #include <redis/resp3/type.hpp>
 #include <redis/resp3/parser.hpp>
 
-#include <system_error>
+#include <cassert>
 #include <string>
 #include <tuple>
 
@@ -39,17 +39,7 @@ namespace redis::resp3
  *
  *  See more in @ref serialization.
  */
-
-inline void boost_redis_to_bulk(std::string& payload, std::string_view data)
-{
-    auto const str = std::to_string(data.size());
-
-    payload += to_code(type::blob_string);
-    payload.append(std::cbegin(str), std::cend(str));
-    payload += parser::sep;
-    payload.append(std::cbegin(data), std::cend(data));
-    payload += parser::sep;
-};
+void boost_redis_to_bulk(std::string& payload, std::string_view data);
 
 template <class T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
 void boost_redis_to_bulk(std::string& payload, T n)
@@ -93,14 +83,7 @@ struct add_bulk_impl<std::pair<U, V>>
     }
 };
 
-inline void add_header(std::string& payload, type t, std::size_t size)
-{
-    auto const str = std::to_string(size);
-
-    payload += to_code(t);
-    payload.append(std::cbegin(str), std::cend(str));
-    payload += parser::sep;
-};
+void add_header(std::string& payload, type t, std::size_t size);
 
 template <class T>
 void add_bulk(std::string& payload, T const& data)
@@ -123,16 +106,8 @@ struct bulk_counter<std::pair<T, U>>
     static constexpr auto size = 2U;
 };
 
-inline void add_blob(std::string& payload, std::string_view blob)
-{
-    payload.append(std::cbegin(blob), std::cend(blob));
-    payload += parser::sep;
-};
-
-inline void add_separator(std::string& payload)
-{
-    payload += parser::sep;
-};
+void add_blob(std::string& payload, std::string_view blob);
+void add_separator(std::string& payload);
 
 namespace detail
 {
@@ -170,5 +145,7 @@ void deserialize(std::string_view const& data, Adapter adapter)
 }  // namespace detail
 
 }  // namespace redis::resp3
+
+#include <redis/resp3/impl/serialization.ipp>
 
 #endif  // REDIS_RESP3_SERIALIZATION_HPP

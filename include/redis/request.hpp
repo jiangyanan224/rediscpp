@@ -1,6 +1,6 @@
 /* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
- * Distributed under the Redis Software License, Version 1.0. (See
+ * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
  */
 
@@ -22,17 +22,8 @@ namespace redis
 
 namespace detail
 {
-inline auto has_response(std::string_view cmd) -> bool
-{
-    if (cmd == "SUBSCRIBE")
-        return true;
-    if (cmd == "PSUBSCRIBE")
-        return true;
-    if (cmd == "UNSUBSCRIBE")
-        return true;
-    return false;
-};
-}  // namespace detail
+auto has_response(std::string_view cmd) -> bool;
+}
 
 /** \brief Creates Redis requests.
  *  \ingroup high-level-api
@@ -329,5 +320,7 @@ private:
 };
 
 }  // namespace redis
+
+#include <redis/impl/request.ipp>
 
 #endif  // REDIS_REQUEST_HPP

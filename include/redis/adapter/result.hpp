@@ -10,7 +10,7 @@
 
 #include <redis/resp3/type.hpp>
 #include <redis/error.hpp>
-#include <redis/adapter/system/result.hpp>
+#include <system/result.hpp>
 #include <string>
 #include <source_location>
 
@@ -55,7 +55,7 @@ inline bool operator!=(error const& a, error const& b)
  *  @ingroup high-level-api
  */
 template <class Value>
-using result = system::result<Value, error>;
+using result = system_::result<Value, error>;
 
 inline void throw_exception_from_error(error const& e, std::source_location const&)
 {

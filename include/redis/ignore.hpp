@@ -1,12 +1,14 @@
 
 /* Copyright (c) 2018-2022 Marcelo Zimbres Silva (mzimbres@gmail.com)
  *
- * Distributed under the Redis Software License, Version 1.0. (See
+ * Distributed under the Boost Software License, Version 1.0. (See
  * accompanying file LICENSE.txt)
  */
 
 #ifndef REDIS_IGNORE_HPP
 #define REDIS_IGNORE_HPP
+
+#include <system/result.hpp>
 
 #include <tuple>
 #include <type_traits>
@@ -40,8 +42,10 @@ using ignore_t = std::decay_t<decltype(std::ignore)>;
  *  RESP3 errors won't be ignore but will cause `async_exec` to
  *  complete with an error.
  */
-inline ignore_t ignore;
+extern ignore_t ignore;
 
 }  // namespace redis
+
+#include <redis/impl/ignore.ipp>
 
 #endif  // REDIS_IGNORE_HPP
